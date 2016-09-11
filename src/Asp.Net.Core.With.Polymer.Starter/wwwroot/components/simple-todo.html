@@ -31,17 +31,19 @@
                     <paper-icon-button icon="icons:add-circle-outline" suffix on-tap="addTodo"></paper-icon-button>
                 </paper-input-container>
                 <template is="dom-repeat" items="[[data]]">
-                    <div id="content-checkbox">
-                        <paper-checkbox checked="{{item.isDone}}" on-change="updateTodo"></paper-checkbox>
-                    </div>
-                    <paper-item-body two-line>
-                        <div>{{item.title}}</div>
-                        <div secondary>
-                            added, <em>{{item.dateAdded}}</em>
+                    <paper-item>
+                        <div id="content-checkbox">
+                            <paper-checkbox checked="{{item.isDone}}" on-change="updateTodo"></paper-checkbox>
                         </div>
-                    </paper-item-body>
-                    <paper-icon-button icon="icons:done" alt="check this!" on-tap="checkOutTodo">
-                    </paper-icon-button>
+                        <paper-item-body two-line>
+                            <div>{{item.title}}</div>
+                            <div secondary>
+                                added, <em>{{item.dateAdded}}</em>
+                            </div>
+                        </paper-item-body>
+                        <paper-icon-button icon="icons:done" alt="check this!" on-tap="checkOutTodo">
+                        </paper-icon-button>
+                    </paper-item>
                 </template>
             </div>
             <div class="flex4child"></div>
