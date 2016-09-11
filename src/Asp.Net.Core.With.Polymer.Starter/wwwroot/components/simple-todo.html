@@ -1,0 +1,169 @@
+﻿<dom-module id="simple-todo">
+    <template>
+        <style is="custom-style">
+            .flex-horizontal-with-ratios {
+                @apply(--layout-horizontal);
+            }
+
+            .flex4child {
+                @apply(--layout-flex-4);
+            }
+
+            #content-checkbox {
+                display: -ms-flexbox;
+                display: -webkit-flex;
+                display: flex;
+                -ms-flex-direction: row;
+                -webkit-flex-direction: row;
+                flex-direction: row;
+                -ms-flex-align: center;
+                -webkit-align-items: center;
+                align-items: center;
+                width: 56px;
+            }
+        </style>
+        <div class="container flex-horizontal-with-ratios">
+            <div class="flex4child"></div>
+            <div class="flex4child">
+                <paper-input-container>
+                    <label>what do you wanna do next?</label>
+                    <input is="iron-input" value="{{newTodo::input}}" />
+                    <paper-icon-button icon="icons:add-circle-outline" suffix on-tap="addTodo"></paper-icon-button>
+                </paper-input-container>
+                <template is="dom-repeat" items="[[data]]">
+                    <div id="content-checkbox">
+                        <paper-checkbox checked="{{item.isDone}}" on-change="updateTodo"></paper-checkbox>
+                    </div>
+                    <paper-item-body two-line>
+                        <div>{{item.title}}</div>
+                        <div secondary>
+                            added, <em>{{item.dateAdded}}</em>
+                        </div>
+                    </paper-item-body>
+                    <paper-icon-button icon="icons:done" alt="check this!" on-tap="checkOutTodo">
+                    </paper-icon-button>
+                </template>
+            </div>
+            <div class="flex4child"></div>
+        </div>
+
+        <iron-ajax auto
+                   url="http://localhost:65342/api/todo"
+                   handle-as="json"
+                   on-response="handeleGet"></iron-ajax>
+
+        <iron-ajax id="ajaxPost"
+                   url="http://localhost:65342/api/todo"
+                   handle-as="json"
+                   body='{{body}}'
+                   method="POST"
+                   content-type="application/json"></iron-ajax>
+
+
+        <iron-ajax id="ajaxDelete"
+                   handle-as="json"
+                   method="DELETE"
+                   content-type="application/json"></iron-ajax>
+
+        <iron-ajax id="ajaxPut"
+                   handle-as="json"
+                   method="PUT"
+                   body='{{body}}'
+                   content-type="application/json"></iron-ajax>
+    </template>
+    <script>
+        Polymer({
+            is: "simple-todo",
+
+            properties: {
+                newTodo: {
+                    type: String,
+                    notify: true,
+                    value: 'make some custom web components'
+                },
+                body: {
+                    type: Object,
+                    notify: true
+                },
+                data: {
+                    type: Array,
+                    value: [],
+                    notify: true
+                }
+            },
+
+            addTodo: function (e) {
+                var self = this;
+
+                self.body = { "title": this.newTodo };
+
+                self.$.ajaxPost.addEventListener('response',
+                    function (data) {
+                        if (data.detail.status === 201) {
+                            var createdTodo = {
+                                id: data.detail.response.id,
+                                title: data.detail.response.title,
+                                isDone: data.detail.response.isDone,
+                                dateAdded: moment(data.detail.response.dateAdded).format('LLL')
+                            }
+                            self.push('data', createdTodo);
+
+                            self.newTodo = '';
+                        }
+                    });
+
+                self.$.ajaxPost.generateRequest();
+
+            },
+            checkOutTodo: function (e) {
+                var self = this;
+
+                self.$.ajaxDelete.url = "http://localhost:65342/api/todo/" + e.model.item.id;
+
+                self.$.ajaxDelete.addEventListener('response',
+                    function (data) {
+                        if (data.detail.status === 204) {
+                            var index = self.data.indexOf(e.model.item);
+
+                            if (index !== -1) {
+                                self.splice('data', index, 1);
+                            }
+                        }
+                    });
+
+                self.$.ajaxDelete.generateRequest();
+
+            },
+
+            updateTodo: function (e) {
+                var self = this;
+
+                self.$.ajaxPut.url = "http://localhost:65342/api/todo/" + e.model.item.id;
+                self.body = { "id": e.model.item.id, "title": e.model.item.title, "dateAdded": moment(e.model.item.dateAdded).format("YYYY-MM-DD HH:mm:ss"), "isDone": e.model.item.isDone };
+
+                self.$.ajaxPut.addEventListener('response',
+                    function (data) {
+                        if (data.detail.status !== 204) {
+                            e.model.set('item.isDone', !e.model.item.isDone);
+                        }
+                    });
+
+                self.$.ajaxPut.generateRequest();
+
+            },
+
+            handeleGet: function (data) {
+                var self = this;
+                self.data = data.detail.response.map(function (item) {
+                    return {
+                        id: item.id,
+                        title: item.title,
+                        isDone: item.isDone,
+                        dateAdded: moment(item.dateAdded).format('LLL')
+                    }
+                });
+            }
+        });
+    </script>
+
+</dom-module>
