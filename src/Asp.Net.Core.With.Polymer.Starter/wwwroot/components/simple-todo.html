@@ -30,7 +30,7 @@
                     <input is="iron-input" value="{{newTodo::input}}" />
                     <paper-icon-button icon="icons:add-circle-outline" suffix on-tap="addTodo"></paper-icon-button>
                 </paper-input-container>
-                <template is="dom-repeat" items="[[data]]">
+                <template is="dom-repeat" id="domRepeat" items="[[data]]">
                     <paper-item>
                         <div id="content-checkbox">
                             <paper-checkbox checked="{{item.isDone}}" on-change="updateTodo"></paper-checkbox>
@@ -52,14 +52,15 @@
         <iron-ajax auto
                    url="http://localhost:65342/api/todo"
                    handle-as="json"
-                   on-response="handeleGet"></iron-ajax>
+                   on-response="handleGet"></iron-ajax>
 
         <iron-ajax id="ajaxPost"
                    url="http://localhost:65342/api/todo"
                    handle-as="json"
                    body='{{body}}'
                    method="POST"
-                   content-type="application/json"></iron-ajax>
+                   content-type="application/json"
+                   on-response="handlePost"></iron-ajax>
 
 
         <iron-ajax id="ajaxDelete"
@@ -91,70 +92,14 @@
                     type: Array,
                     value: [],
                     notify: true
+                },
+                listeners: {
+                    "delete": "checkOutTodo"
                 }
-            },
-
-            addTodo: function (e) {
-                var self = this;
-
-                self.body = { "title": this.newTodo };
-
-                self.$.ajaxPost.addEventListener('response',
-                    function (data) {
-                        if (data.detail.status === 201) {
-                            var createdTodo = {
-                                id: data.detail.response.id,
-                                title: data.detail.response.title,
-                                isDone: data.detail.response.isDone,
-                                dateAdded: moment(data.detail.response.dateAdded).format('LLL')
-                            }
-                            self.push('data', createdTodo);
-
-                            self.newTodo = '';
-                        }
-                    });
-
-                self.$.ajaxPost.generateRequest();
-
-            },
-            checkOutTodo: function (e) {
-                var self = this;
-
-                self.$.ajaxDelete.url = "http://localhost:65342/api/todo/" + e.model.item.id;
-
-                self.$.ajaxDelete.addEventListener('response',
-                    function (data) {
-                        if (data.detail.status === 204) {
-                            var index = self.data.indexOf(e.model.item);
-
-                            if (index !== -1) {
-                                self.splice('data', index, 1);
-                            }
-                        }
-                    });
-
-                self.$.ajaxDelete.generateRequest();
 
             },
 
-            updateTodo: function (e) {
-                var self = this;
-
-                self.$.ajaxPut.url = "http://localhost:65342/api/todo/" + e.model.item.id;
-                self.body = { "id": e.model.item.id, "title": e.model.item.title, "dateAdded": moment(e.model.item.dateAdded).format("YYYY-MM-DD HH:mm:ss"), "isDone": e.model.item.isDone };
-
-                self.$.ajaxPut.addEventListener('response',
-                    function (data) {
-                        if (data.detail.status !== 204) {
-                            e.model.set('item.isDone', !e.model.item.isDone);
-                        }
-                    });
-
-                self.$.ajaxPut.generateRequest();
-
-            },
-
-            handeleGet: function (data) {
+            handleGet: function (data) {
                 var self = this;
                 self.data = data.detail.response.map(function (item) {
                     return {
@@ -164,7 +109,55 @@
                         dateAdded: moment(item.dateAdded).format('LLL')
                     }
                 });
-            }
+            },
+
+            handlePost: function (data) {
+                var self = this;
+                if (data.detail.status === 201) {
+                    var createdTodo = {
+                        id: data.detail.response.id,
+                        title: data.detail.response.title,
+                        isDone: data.detail.response.isDone,
+                        dateAdded: moment(data.detail.response.dateAdded).format('LLL')
+                    }
+                    self.push('data', createdTodo);
+
+                    self.newTodo = '';
+                }
+            },
+
+            addTodo: function (e) {
+                var self = this;
+                self.$.ajaxPost.url = "http://localhost:65342/api/todo/";
+                self.body = { "title": this.newTodo };
+                self.$.ajaxPost.generateRequest();
+
+            },
+
+            checkOutTodo: function (e) {
+                var self = this;
+                self.$.ajaxDelete.url = "http://localhost:65342/api/todo/" + e.model.item.id;
+
+                self.$.ajaxDelete.generateRequest();
+
+                var index = self.data.indexOf(e.model.item);
+
+                if (index !== -1) {
+                    self.splice('data', index, 1);
+                }
+
+            },
+
+            updateTodo: function (e) {
+                var self = this;
+                self.$.ajaxPut.url = "http://localhost:65342/api/todo/" + e.model.item.id;
+                self.body = { "id": e.model.item.id, "title": e.model.item.title, "dateAdded": moment(e.model.item.dateAdded).format("YYYY-MM-DD HH:mm:ss"), "isDone": e.model.item.isDone };
+
+                self.$.ajaxPut.generateRequest();
+
+            },
+
+
         });
     </script>
 
